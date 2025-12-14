@@ -8,7 +8,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
-const CHEF_TELEGRAM_ID = '7903997817';
+const CHEF_TELEGRAM_ID = '8054238662';
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
