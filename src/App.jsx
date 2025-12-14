@@ -3,8 +3,8 @@ import { Bell, Plus, Trash2, Send, CheckCircle, XCircle, Eye, LogOut, Users, Ima
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration Supabase - REMPLACER PAR VOS CLÉS
-const supabaseUrl = 'VOTRE_SUPABASE_URL';
-const supabaseKey = 'VOTRE_SUPABASE_ANON_KEY';
+const supabaseUrl = 'https://kvvcuainxntgtaykehyq.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2dmN1YWlueG50Z3RheWtlaHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MjkwMDcsImV4cCI6MjA4MTMwNTAwN30.ZuZFl0on9s5Sa8hLwevUq6ksIJuO7hKIzH1Pft20oC8';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
