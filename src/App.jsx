@@ -646,7 +646,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
         if (filter === 'en_attente') return q.status === 'en_attente';
         return true;
       })
-      .sort((a// Suite du DirecteurDashboard (à ajouter après la ligne 'sort((a'), b) => new Date(b.date) - new Date(a.date));
+      .sort((a), b) => new Date(b.date) - new Date(a.date));
 
     if (selectedQuote) {
       return (
