@@ -131,9 +131,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
             >
               Se Connecter
             </button>
-            <div className="text-xs text-gray-500 text-center mt-4">
-              Identifiants par défaut: admin / admin123
-            </div>
+            
           </div>
         </div>
       </div>
