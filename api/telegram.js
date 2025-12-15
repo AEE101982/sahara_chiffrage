@@ -1,6 +1,13 @@
-// api/telegram.js - Version simplifiée
+// api/telegram.js - Vercel Serverless Function pour Telegram
+
 const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
-const CHEF_TELEGRAM_IDS = ['8054238662', '7903997817']; // Deux IDs
+
+// Mapping des chefs par usine
+const CHEFS_BY_USINE = {
+  'bois': '8054238662',        // Chef usine Bois
+  'metal': '7903997817',       // Chef usine Metal
+  'semi-metal': '7392016731'   // Chef usine Semi-Métallique
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -8,27 +15,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message } = req.body;
+    const { message, usine } = req.body;
     
-    // Envoyer le message à tous les chefs
-    const promises = CHEF_TELEGRAM_IDS.map(chefId => 
-      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chefId,
-          text: message,
-          parse_mode: 'Markdown'
-        })
+    // Vérifier si l'usine est valide
+    const chefTelegramId = CHEFS_BY_USINE[usine];
+    
+    if (!chefTelegramId) {
+      return res.status(400).json({ 
+        error: 'Usine non valide',
+        usinesDisponibles: Object.keys(CHEFS_BY_USINE)
+      });
+    }
+    
+    // Envoyer le message au chef de l'usine sélectionnée
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chefTelegramId,
+        text: message,
+        parse_mode: 'Markdown'
       })
-    );
+    });
 
-    await Promise.all(promises);
+    const data = await response.json();
     
+    if (!data.ok) {
+      console.error('Telegram API error:', data);
+      return res.status(500).json({ 
+        error: 'Failed to send notification',
+        telegramError: data.description 
+      });
+    }
+
     res.status(200).json({ 
-      success: true, 
-      sentTo: CHEF_TELEGRAM_IDS.length,
-      message: `Notification envoyée à ${CHEF_TELEGRAM_IDS.length} chef(s)`
+      success: true,
+      usine: usine,
+      chefId: chefTelegramId,
+      message: `Notification envoyée au chef de l'usine ${usine}`
     });
     
   } catch (error) {
