@@ -10,6 +10,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
 const CHEF_TELEGRAM_ID = '8054238662';
 
+// Import du logo - Assurez-vous que le fichier logosahara2.png est dans le même dossier
+const logo = './logosahara2.png';
+
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [quotes, setQuotes] = useState([]);
@@ -48,8 +51,12 @@ const App = () => {
 📅 Date: ${new Date(quote.date).toLocaleString('fr-FR')}
 📋 Nombre de lignes: ${quote.lines.length}
 
-Détails:
-${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
+*Détails par ligne:*
+${quote.lines.map((line, idx) => {
+  const lineText = `${idx + 1}. ${line.text}`;
+  const imagesCount = line.images ? line.images.length : 0;
+  return `${lineText} ${imagesCount > 0 ? `(${imagesCount} image${imagesCount > 1 ? 's' : ''})` : ''}`;
+}).join('\n')}`;
 
       // Appeler notre API Vercel serverless function
       await fetch('/api/telegram', {
@@ -57,7 +64,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          images: quote.images || []
+          lines: quote.lines // Envoyer toutes les lignes avec leurs images
         })
       });
     } catch (error) {
@@ -90,6 +97,15 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+          {/* Logo ajouté */}
+          <div className="flex justify-center mb-6">
+            <img 
+              src={logo} 
+              alt="Sahara Mobilier" 
+              className="h-16 object-contain"
+              style={{ filter: 'brightness(0) saturate(100%)' }}
+            />
+          </div>
           <h1 className="text-3xl font-bold text-center text-indigo-600 mb-8">
             Gestion des Chiffrages
           </h1>
@@ -271,8 +287,11 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
 
   // Profil Commercial
   const CommercialDashboard = () => {
-    const [lines, setLines] = useState([{ id: 1, text: '', images: []}]);
-    const [images, setImages] = useState([]);
+    const [lines, setLines] = useState([{ 
+      id: 1, 
+      text: '', 
+      images: [] // Chaque ligne a son propre tableau d'images
+    }]);
     const [sentQuotes, setSentQuotes] = useState([]);
 
     useEffect(() => {
@@ -280,7 +299,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
     }, [quotes]);
 
     const addLine = () => {
-      setLines([...lines, { id: Date.now(), text: '' }]);
+      setLines([...lines, { id: Date.now(), text: '', images: [] }]);
     };
 
     const removeLine = (id) => {
@@ -293,19 +312,27 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
       setLines(lines.map(line => line.id === id ? { ...line, text } : line));
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = (lineId, e) => {
       const files = Array.from(e.target.files);
       files.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setImages(prev => [...prev, reader.result]);
+          setLines(prev => prev.map(line => 
+            line.id === lineId 
+              ? { ...line, images: [...line.images, reader.result] }
+              : line
+          ));
         };
         reader.readAsDataURL(file);
       });
     };
 
-    const removeImage = (index) => {
-      setImages(images.filter((_, idx) => idx !== index));
+    const removeImage = (lineId, imageIndex) => {
+      setLines(prev => prev.map(line => 
+        line.id === lineId 
+          ? { ...line, images: line.images.filter((_, idx) => idx !== imageIndex) }
+          : line
+      ));
     };
 
     const sendQuote = async () => {
@@ -318,7 +345,6 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
       const newQuote = {
         commercial_name: currentUser.name,
         lines: validLines,
-        images: images,
         status: 'en_attente'
       };
 
@@ -332,8 +358,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
         alert('Erreur: ' + error.message);
       } else {
         await sendTelegramNotification(data);
-        setLines([{ id: Date.now(), text: '' }]);
-        setImages([]);
+        setLines([{ id: Date.now(), text: '', images: [] }]);
         alert('Demande envoyée avec succès!');
         loadData();
       }
@@ -343,52 +368,65 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Nouvelle Demande de Chiffrage</h2>
-          <div className="space-y-3">
+          <div className="space-y-6">
             {lines.map((line, index) => (
-              <div key={line.id} className="flex gap-2">
-                <input
-                  type="text"
-                  value={line.text}
-                  onChange={(e) => updateLine(line.id, e.target.value)}
-                  placeholder={`Ligne ${index + 1}`}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-                <button
-                  onClick={() => removeLine(line.id)}
-                  disabled={lines.length === 1}
-                  className="p-3 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Trash2 size={20} />
-                </button>
+              <div key={line.id} className="space-y-3 p-4 border border-gray-200 rounded-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={line.text}
+                    onChange={(e) => updateLine(line.id, e.target.value)}
+                    placeholder={`Ligne ${index + 1}`}
+                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={() => removeLine(line.id)}
+                    disabled={lines.length === 1}
+                    className="p-3 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+                
+                {/* Section images pour cette ligne spécifique */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Images pour cette ligne (optionnel)
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
+                      <ImagePlus size={20} />
+                      Ajouter des images
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        multiple 
+                        onChange={(e) => handleImageUpload(line.id, e)} 
+                        className="hidden" 
+                      />
+                    </label>
+                    <span className="text-sm text-gray-600">
+                      {line.images.length} image(s)
+                    </span>
+                  </div>
+                  {line.images.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 mt-3">
+                      {line.images.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                          <button
+                            onClick={() => removeImage(line.id, idx)}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Images (optionnel)</label>
-            <div className="flex gap-2 items-center">
-              <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
-                <ImagePlus size={20} />
-                Ajouter des images
-                <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-              </label>
-              <span className="text-sm text-gray-600">{images.length} image(s)</span>
-            </div>
-            {images.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative group">
-                    <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded-lg" />
-                    <button
-                      onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="flex gap-3 mt-4">
@@ -427,18 +465,20 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
                       {quote.status === 'en_attente' ? 'En Attente' : 'Traitée'}
                     </span>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-3">
                     {quote.lines.map((line, idx) => (
-                      <div key={idx} className="text-gray-700">• {line.text}</div>
+                      <div key={idx} className="text-gray-700 p-3 bg-gray-50 rounded-lg">
+                        <div className="font-medium">• {line.text}</div>
+                        {line.images && line.images.length > 0 && (
+                          <div className="mt-2 flex gap-2">
+                            {line.images.map((img, imgIdx) => (
+                              <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-16 h-16 object-cover rounded" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
-                  {quote.images && quote.images.length > 0 && (
-                    <div className="mt-2 flex gap-2">
-                      {quote.images.map((img, idx) => (
-                        <img key={idx} src={img} alt={`Image ${idx + 1}`} className="w-16 h-16 object-cover rounded" />
-                      ))}
-                    </div>
-                  )}
                   {quote.status === 'traite' && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="flex items-center gap-2 text-sm">
@@ -521,22 +561,24 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
               <div className="text-sm text-gray-600 mb-3">
                 Date: {new Date(selectedQuote.date).toLocaleString('fr-FR')}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="font-semibold text-gray-700">Lignes de la demande:</div>
                 {selectedQuote.lines.map((line, idx) => (
-                  <div key={idx} className="text-gray-700 pl-2">• {line.text}</div>
+                  <div key={idx} className="text-gray-700 p-3 bg-white rounded-lg border border-gray-200">
+                    <div className="font-medium">• {line.text}</div>
+                    {line.images && line.images.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-sm text-gray-600 mb-1">Images associées:</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {line.images.map((img, imgIdx) => (
+                            <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
-              {selectedQuote.images && selectedQuote.images.length > 0 && (
-                <div className="mt-3">
-                  <div className="font-semibold text-gray-700 mb-2">Images jointes:</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {selectedQuote.images.map((img, idx) => (
-                      <img key={idx} src={img} alt={`Image ${idx + 1}`} className="w-full h-32 object-cover rounded-lg" />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="space-y-4 pt-4">
@@ -621,7 +663,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
                 </div>
                 <div className="text-sm text-gray-600">
                   {quote.lines.length} ligne(s)
-                  {quote.images && quote.images.length > 0 && ` • ${quote.images.length} image(s)`}
+                  {quote.lines.some(line => line.images && line.images.length > 0) && ' • Avec images'}
                 </div>
               </div>
             ))
@@ -673,22 +715,24 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
                   </span>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="font-semibold text-gray-700">Lignes de la demande:</div>
                 {selectedQuote.lines.map((line, idx) => (
-                  <div key={idx} className="text-gray-700 pl-2">• {line.text}</div>
+                  <div key={idx} className="text-gray-700 p-3 bg-white rounded-lg border border-gray-200">
+                    <div className="font-medium">• {line.text}</div>
+                    {line.images && line.images.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-sm text-gray-600 mb-1">Images associées:</div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {line.images.map((img, imgIdx) => (
+                            <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-24 object-cover rounded-lg cursor-pointer" onClick={() => window.open(img)} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
-              {selectedQuote.images && selectedQuote.images.length > 0 && (
-                <div className="mt-3">
-                  <div className="font-semibold text-gray-700 mb-2">Images jointes:</div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {selectedQuote.images.map((img, idx) => (
-                      <img key={idx} src={img} alt={`Image ${idx + 1}`} className="w-full h-24 object-cover rounded-lg cursor-pointer" onClick={() => window.open(img)} />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {selectedQuote.status === 'traite' && (
@@ -782,7 +826,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
                     </div>
                     <div className="text-sm text-gray-600">
                       {quote.lines.length} ligne(s)
-                      {quote.images && quote.images.length > 0 && ` • ${quote.images.length} image(s)`}
+                      {quote.lines.some(line => line.images && line.images.length > 0) && ' • Avec images'}
                     </div>
                     {quote.status === 'traite' && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
@@ -820,9 +864,18 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-indigo-600">Gestion des Chiffrages</h1>
-            <p className="text-sm text-gray-600">{currentUser.name}</p>
+          <div className="flex items-center gap-3">
+            {/* Logo ajouté dans le header */}
+            <img 
+              src={logo} 
+              alt="Sahara Mobilier" 
+              className="h-10 object-contain"
+              style={{ filter: 'brightness(0) saturate(100%)' }}
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-indigo-600">Gestion des Chiffrages</h1>
+              <p className="text-sm text-gray-600">{currentUser.name}</p>
+            </div>
           </div>
           <button
             onClick={() => setCurrentUser(null)}
@@ -835,13 +888,17 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
       </header>
       <main className="max-w-5xl mx-auto px-4 py-8">
         {loading ? (
-          <div className="text-center py-8">Chargement...</div>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center py-8">Chargement...</div>
+          </div>
         ) : (
-          <>
-            {currentUser.role === 'commercial' && <CommercialDashboard />}
-            {currentUser.role === 'chef' && <ChefDashboard />}
-            {currentUser.role === 'directeur' && <DirecteurDashboard />}
-          </>
+          <div className="flex flex-col items-center">
+            <div className="w-full">
+              {currentUser.role === 'commercial' && <CommercialDashboard />}
+              {currentUser.role === 'chef' && <ChefDashboard />}
+              {currentUser.role === 'directeur' && <DirecteurDashboard />}
+            </div>
+          </div>
         )}
       </main>
     </div>
