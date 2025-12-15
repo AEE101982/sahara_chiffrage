@@ -644,7 +644,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
         if (filter === 'en_attente') return q.status === 'en_attente';
         return true;
       })
-      .sort((a), b) => new Date(b.date) - new Date(a.date));
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     if (selectedQuote) {
       return (
@@ -833,7 +833,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
           </button>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8">
         {loading ? (
           <div className="text-center py-8">Chargement...</div>
         ) : (
