@@ -12,7 +12,6 @@ const App = () => {
   const [quotes, setQuotes] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     // Vérifier si l'utilisateur est déjà connecté au chargement
@@ -57,36 +56,47 @@ const App = () => {
     setLoading(false);
   };
 
-  const sendTelegramNotification = async (quote) => {
+  // Fonction pour obtenir le label de l'usine
+  const getUsineLabel = (usineKey) => {
+    const usines = {
+      'bois': 'Usine Bois',
+      'metal': 'Usine Metal',
+      'semi-metal': 'Usine Semi-Métallique'
+    };
+    return usines[usineKey] || usineKey;
+  };
+
+  const sendTelegramNotification = async (quote, selectedUsine) => {
     try {
       const message = `🔔 *Nouvelle demande de chiffrage*
       
-👤 Commercial: ${quote.commercial_name}
-📅 Date: ${new Date(quote.date).toLocaleString('fr-FR')}
-📋 Nombre de lignes: ${quote.lines.length}
+🏭 *Usine:* ${getUsineLabel(selectedUsine)}
+👤 *Commercial:* ${quote.commercial_name}
+📅 *Date:* ${new Date(quote.date).toLocaleString('fr-FR')}
+📋 *Nombre de lignes:* ${quote.lines.length}
 
 *Détails par ligne:*
 ${quote.lines.map((line, idx) => {
   const lineText = `${idx + 1}. ${line.text}`;
   const imagesCount = line.images ? line.images.length : 0;
   return `${lineText} ${imagesCount > 0 ? `(${imagesCount} image${imagesCount > 1 ? 's' : ''})` : ''}`;
-}).join('\n')}`;
+}).join('\n')}
+
+📱 _Connectez-vous à l'application pour voir les images détaillées._`;
 
       await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          lines: quote.lines
+          usine: selectedUsine
         })
       });
+      
     } catch (error) {
       console.error('Erreur notification Telegram:', error);
     }
   };
-
-  // Logo en base64 pour éviter les problèmes de chemin
-  const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAA1BMVEX///+nxBvIAAAASElEQVR4nO3BgQAAAADDoPlTX+AIVQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwDcaiAAFXD1ujAAAAAElFTkSuQmCC';
 
   // Composant de connexion
   const LoginScreen = () => {
@@ -113,25 +123,18 @@ ${quote.lines.map((line, idx) => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-          {/* Logo avec meilleur centrage */}
           <div className="flex flex-col items-center justify-center mb-8">
             <div className="mb-4 flex justify-center">
               <div className="relative">
-                {logoError ? (
-                  <div className="w-32 h-32 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-600 rounded-full">
-                    <span className="text-white font-bold text-2xl">SM</span>
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-gray-800">SAHARA MOBILIER</span>
-                  </div>
-                )}
+                <div className="w-32 h-32 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-600 rounded-full">
+                  <span className="text-white font-bold text-2xl">SM</span>
+                </div>
               </div>
             </div>
             <h1 className="text-3xl font-bold text-center text-gray-800">
-              Gestion des Chiffrages
+              SAHARA MOBILIER
             </h1>
-            <p className="text-gray-600 mt-2 text-center">Connectez-vous à votre compte</p>
+            <p className="text-gray-600 mt-2 text-center">Gestion des Chiffrages</p>
           </div>
           
           <div className="space-y-6">
@@ -191,7 +194,8 @@ ${quote.lines.map((line, idx) => {
       username: '',
       password: '',
       role: 'commercial',
-      name: ''
+      name: '',
+      usine: 'bois' // Ajouter l'usine pour les chefs
     });
 
     const addUser = async () => {
@@ -208,7 +212,7 @@ ${quote.lines.map((line, idx) => {
         alert('Erreur : ' + error.message);
       } else {
         alert('Utilisateur créé avec succès');
-        setNewUser({ username: '', password: '', role: 'commercial', name: '' });
+        setNewUser({ username: '', password: '', role: 'commercial', name: '', usine: 'bois' });
         loadData();
       }
     };
@@ -279,6 +283,20 @@ ${quote.lines.map((line, idx) => {
                     placeholder="Mot de passe"
                   />
                 </div>
+                {newUser.role === 'chef' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Usine attribuée</label>
+                    <select
+                      value={newUser.usine}
+                      onChange={(e) => setNewUser({ ...newUser, usine: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="bois">Usine Bois</option>
+                      <option value="metal">Usine Metal</option>
+                      <option value="semi-metal">Usine Semi-Métallique</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <button
                 onClick={addUser}
@@ -299,9 +317,18 @@ ${quote.lines.map((line, idx) => {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
                           @{user.username}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-2">
                           {user.role === 'commercial' ? 'Commercial' : user.role === 'chef' ? 'Chef de Méthodes' : 'Directeur'}
                         </span>
+                        {user.usine && (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            user.usine === 'bois' ? 'bg-amber-100 text-amber-800' :
+                            user.usine === 'metal' ? 'bg-blue-100 text-blue-800' :
+                            'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {getUsineLabel(user.usine)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {user.username !== 'admin' && (
@@ -329,6 +356,7 @@ ${quote.lines.map((line, idx) => {
       text: '', 
       images: []
     }]);
+    const [usine, setUsine] = useState('bois');
     const [sentQuotes, setSentQuotes] = useState([]);
 
     useEffect(() => {
@@ -379,9 +407,15 @@ ${quote.lines.map((line, idx) => {
         return;
       }
 
+      if (!usine) {
+        alert('Veuillez sélectionner une usine');
+        return;
+      }
+
       const newQuote = {
         commercial_name: currentUser.name,
         lines: validLines,
+        usine: usine,
         status: 'en_attente',
         date: new Date().toISOString()
       };
@@ -395,9 +429,9 @@ ${quote.lines.map((line, idx) => {
       if (error) {
         alert('Erreur: ' + error.message);
       } else {
-        await sendTelegramNotification(data);
+        await sendTelegramNotification(data, usine);
         setLines([{ id: Date.now(), text: '', images: [] }]);
-        alert('Demande envoyée avec succès!');
+        alert(`Demande envoyée avec succès à l'usine ${getUsineLabel(usine)} !`);
         loadData();
       }
     };
@@ -410,6 +444,117 @@ ${quote.lines.map((line, idx) => {
             <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full">
               <Bell size={20} />
               <span className="font-semibold">Commercial</span>
+            </div>
+          </div>
+          
+          {/* Sélection de l'usine */}
+          <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">🏭 Sélectionnez l'usine</h3>
+            <p className="text-gray-600 mb-6">Choisissez l'usine concernée par votre demande</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Usine Bois */}
+              <label className={`cursor-pointer transition-all ${usine === 'bois' ? 'transform scale-[1.02]' : ''}`}>
+                <input
+                  type="radio"
+                  name="usine"
+                  value="bois"
+                  checked={usine === 'bois'}
+                  onChange={(e) => setUsine(e.target.value)}
+                  className="hidden"
+                />
+                <div className={`p-6 rounded-xl border-2 transition-all ${
+                  usine === 'bois' 
+                    ? 'border-amber-500 bg-gradient-to-r from-amber-50 to-yellow-50 shadow-lg' 
+                    : 'border-gray-300 hover:border-amber-300 hover:bg-gray-50'
+                }`}>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      usine === 'bois' ? 'bg-amber-100' : 'bg-gray-100'
+                    }`}>
+                      <span className="text-2xl">🌲</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg text-gray-800">Usine Bois</div>
+                      <div className="text-sm text-gray-600">Menuiserie & Agencement</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Chef: <span className="font-semibold">M. Ahmed</span>
+                  </div>
+                </div>
+              </label>
+              
+              {/* Usine Metal */}
+              <label className={`cursor-pointer transition-all ${usine === 'metal' ? 'transform scale-[1.02]' : ''}`}>
+                <input
+                  type="radio"
+                  name="usine"
+                  value="metal"
+                  checked={usine === 'metal'}
+                  onChange={(e) => setUsine(e.target.value)}
+                  className="hidden"
+                />
+                <div className={`p-6 rounded-xl border-2 transition-all ${
+                  usine === 'metal' 
+                    ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 shadow-lg' 
+                    : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
+                }`}>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      usine === 'metal' ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <span className="text-2xl">⚙️</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg text-gray-800">Usine Metal</div>
+                      <div className="text-sm text-gray-600">Métallerie & Structure</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Chef: <span className="font-semibold">M. Karim</span>
+                  </div>
+                </div>
+              </label>
+              
+              {/* Usine Semi-Métallique */}
+              <label className={`cursor-pointer transition-all ${usine === 'semi-metal' ? 'transform scale-[1.02]' : ''}`}>
+                <input
+                  type="radio"
+                  name="usine"
+                  value="semi-metal"
+                  checked={usine === 'semi-metal'}
+                  onChange={(e) => setUsine(e.target.value)}
+                  className="hidden"
+                />
+                <div className={`p-6 rounded-xl border-2 transition-all ${
+                  usine === 'semi-metal' 
+                    ? 'border-emerald-500 bg-gradient-to-r from-emerald-50 to-green-50 shadow-lg' 
+                    : 'border-gray-300 hover:border-emerald-300 hover:bg-gray-50'
+                }`}>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      usine === 'semi-metal' ? 'bg-emerald-100' : 'bg-gray-100'
+                    }`}>
+                      <span className="text-2xl">🔩</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg text-gray-800">Usine Semi-Métallique</div>
+                      <div className="text-sm text-gray-600">Mixte Bois & Métal</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Chef: <span className="font-semibold">M. Youssef</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+            
+            <div className="mt-4 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Bell size={16} className="text-amber-500" />
+                <span>La notification sera envoyée au chef de l'usine sélectionnée</span>
+              </div>
             </div>
           </div>
           
@@ -498,8 +643,15 @@ ${quote.lines.map((line, idx) => {
               onClick={sendQuote}
               className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              <Send size={24} />
-              Envoyer pour Chiffrage
+              <div className="flex items-center gap-4">
+                <Send size={24} />
+                <div className="text-left">
+                  <div className="font-bold">Envoyer pour Chiffrage</div>
+                  <div className="text-sm font-normal opacity-90">
+                    à l'usine {getUsineLabel(usine)}
+                  </div>
+                </div>
+              </div>
             </button>
           </div>
         </div>
@@ -529,8 +681,19 @@ ${quote.lines.map((line, idx) => {
                           minute: '2-digit'
                         })}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        Référence: #{quote.id.slice(0, 8)}
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm text-gray-500">
+                          Référence: #{quote.id.slice(0, 8)}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          quote.usine === 'bois' 
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : quote.usine === 'metal'
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          {getUsineLabel(quote.usine)}
+                        </span>
                       </div>
                     </div>
                     <span className={`px-6 py-2 rounded-full text-sm font-bold ${
@@ -626,8 +789,31 @@ ${quote.lines.map((line, idx) => {
     const [realisable, setRealisable] = useState(null);
     const [prixTTC, setPrixTTC] = useState('');
 
+    // Déterminer l'usine du chef connecté (basé sur le nom ou autre logique)
+    const getChefUsine = () => {
+      // Logique simple basée sur le nom du chef
+      const chefUsines = {
+        'Ahmed': 'bois',
+        'Karim': 'metal',
+        'Youssef': 'semi-metal'
+      };
+      
+      // Chercher par nom ou par initiales
+      const userName = currentUser.name.toLowerCase();
+      if (userName.includes('ahmed')) return 'bois';
+      if (userName.includes('karim')) return 'metal';
+      if (userName.includes('youssef')) return 'semi-metal';
+      
+      // Sinon, montrer toutes les usines
+      return 'all';
+    };
+
+    const chefUsine = getChefUsine();
+    
+    // Filtrer les demandes selon l'usine du chef
     const pendingQuotes = quotes
       .filter(q => q.status === 'en_attente')
+      .filter(q => chefUsine === 'all' || q.usine === chefUsine)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const handleSubmit = async () => {
@@ -675,8 +861,7 @@ ${quote.lines.map((line, idx) => {
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-800">Détails de la Demande</h2>
             <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full">
-              <Bell size={20} />
-              <span className="font-semibold">Chef de Méthodes</span>
+              <span className="font-semibold">Chef de Méthodes - {getUsineLabel(selectedQuote.usine)}</span>
             </div>
           </div>
           
@@ -699,9 +884,15 @@ ${quote.lines.map((line, idx) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-600">Statut</div>
-                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200">
-                    ⏳ En Attente de traitement
+                  <div className="text-sm font-medium text-gray-600">Usine</div>
+                  <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
+                    selectedQuote.usine === 'bois' 
+                      ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200'
+                      : selectedQuote.usine === 'metal'
+                      ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200'
+                      : 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
+                  }`}>
+                    {getUsineLabel(selectedQuote.usine)}
                   </span>
                 </div>
               </div>
@@ -852,7 +1043,11 @@ ${quote.lines.map((line, idx) => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-800">Demandes en Attente</h2>
-            <p className="text-gray-600 mt-2">Traitez les demandes de chiffrage des commerciaux</p>
+            <p className="text-gray-600 mt-2">
+              {chefUsine !== 'all' 
+                ? `Usine ${getUsineLabel(chefUsine)} - Vos demandes`
+                : 'Toutes les usines - Toutes les demandes'}
+            </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-full">
@@ -905,6 +1100,15 @@ ${quote.lines.map((line, idx) => {
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        quote.usine === 'bois' 
+                          ? 'bg-amber-100 text-amber-800'
+                          : quote.usine === 'metal'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {getUsineLabel(quote.usine)}
+                      </span>
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {quote.lines.length} ligne{quote.lines.length > 1 ? 's' : ''}
                       </span>
@@ -957,14 +1161,15 @@ ${quote.lines.map((line, idx) => {
   // Directeur Dashboard
   const DirecteurDashboard = () => {
     const [filter, setFilter] = useState('all');
+    const [filterUsine, setFilterUsine] = useState('all');
     const [selectedQuote, setSelectedQuote] = useState(null);
     const [showUserManagement, setShowUserManagement] = useState(false);
 
     const filteredQuotes = quotes
       .filter(q => {
-        if (filter === 'all') return true;
-        if (filter === 'traite') return q.status === 'traite';
-        if (filter === 'en_attente') return q.status === 'en_attente';
+        if (filter === 'all' && filterUsine === 'all') return true;
+        if (filter !== 'all' && q.status !== filter) return false;
+        if (filterUsine !== 'all' && q.usine !== filterUsine) return false;
         return true;
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1007,13 +1212,15 @@ ${quote.lines.map((line, idx) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-600">Statut</div>
+                  <div className="text-sm font-medium text-gray-600">Usine</div>
                   <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
-                    selectedQuote.status === 'en_attente' 
+                    selectedQuote.usine === 'bois' 
                       ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200'
+                      : selectedQuote.usine === 'metal'
+                      ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200'
                       : 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
                   }`}>
-                    {selectedQuote.status === 'en_attente' ? '⏳ En Attente' : '✅ Traitée'}
+                    {getUsineLabel(selectedQuote.usine)}
                   </span>
                 </div>
               </div>
@@ -1122,11 +1329,11 @@ ${quote.lines.map((line, idx) => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-2xl border-2 border-blue-200">
                 <div className="text-4xl font-bold text-blue-600 mb-2">{quotes.length}</div>
                 <div className="text-lg font-semibold text-gray-800">Total des demandes</div>
-                <div className="text-sm text-gray-600 mt-1">Toutes demandes confondues</div>
+                <div className="text-sm text-gray-600 mt-1">Toutes usines confondues</div>
               </div>
               <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 rounded-2xl border-2 border-amber-200">
                 <div className="text-4xl font-bold text-amber-600 mb-2">{quotes.filter(q => q.status === 'en_attente').length}</div>
@@ -1138,9 +1345,14 @@ ${quote.lines.map((line, idx) => {
                 <div className="text-lg font-semibold text-gray-800">Traitée</div>
                 <div className="text-sm text-gray-600 mt-1">Demandes finalisées</div>
               </div>
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-200">
+                <div className="text-4xl font-bold text-purple-600 mb-2">{quotes.filter(q => q.usine === 'bois').length}</div>
+                <div className="text-lg font-semibold text-gray-800">Usine Bois</div>
+                <div className="text-sm text-gray-600 mt-1">Demandes menuiserie</div>
+              </div>
             </div>
             
-            <div className="flex flex-wrap gap-3 mb-8">
+            <div className="flex flex-wrap gap-3 mb-4">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-6 py-3 rounded-xl font-semibold transition-all ${
@@ -1149,7 +1361,7 @@ ${quote.lines.map((line, idx) => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Toutes ({quotes.length})
+                Tous les statuts
               </button>
               <button
                 onClick={() => setFilter('en_attente')}
@@ -1173,6 +1385,49 @@ ${quote.lines.map((line, idx) => {
               </button>
             </div>
             
+            <div className="flex flex-wrap gap-3 mb-8">
+              <button
+                onClick={() => setFilterUsine('all')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filterUsine === 'all' 
+                    ? 'bg-gradient-to-r from-gray-700 to-gray-800 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Toutes les usines
+              </button>
+              <button
+                onClick={() => setFilterUsine('bois')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filterUsine === 'bois' 
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Usine Bois ({quotes.filter(q => q.usine === 'bois').length})
+              </button>
+              <button
+                onClick={() => setFilterUsine('metal')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filterUsine === 'metal' 
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Usine Metal ({quotes.filter(q => q.usine === 'metal').length})
+              </button>
+              <button
+                onClick={() => setFilterUsine('semi-metal')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filterUsine === 'semi-metal' 
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Usine Semi-Métal ({quotes.filter(q => q.usine === 'semi-metal').length})
+              </button>
+            </div>
+            
             <div className="space-y-6">
               {filteredQuotes.length === 0 ? (
                 <div className="text-center py-16">
@@ -1181,7 +1436,7 @@ ${quote.lines.map((line, idx) => {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune demande trouvée</h3>
                   <p className="text-gray-600 max-w-md mx-auto">
-                    Aucune demande ne correspond au filtre sélectionné.
+                    Aucune demande ne correspond aux filtres sélectionnés.
                   </p>
                 </div>
               ) : (
@@ -1219,6 +1474,15 @@ ${quote.lines.map((line, idx) => {
                               : 'bg-emerald-100 text-emerald-800'
                           }`}>
                             {quote.status === 'en_attente' ? '⏳ En Attente' : '✅ Traitée'}
+                          </span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            quote.usine === 'bois' 
+                              ? 'bg-amber-100 text-amber-800'
+                              : quote.usine === 'metal'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {getUsineLabel(quote.usine)}
                           </span>
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {quote.lines.length} ligne{quote.lines.length > 1 ? 's' : ''}
@@ -1301,6 +1565,7 @@ ${quote.lines.map((line, idx) => {
               <div className="text-sm text-gray-600">
                 {currentUser.role === 'commercial' ? 'Commercial' : 
                  currentUser.role === 'chef' ? 'Chef de Méthodes' : 'Directeur'}
+                {currentUser.usine && currentUser.role === 'chef' && ` - ${getUsineLabel(currentUser.usine)}`}
               </div>
             </div>
             <button
@@ -1336,7 +1601,7 @@ ${quote.lines.map((line, idx) => {
             © {new Date().getFullYear()} Sahara Mobilier - Gestion des Chiffrages
           </div>
           <div className="text-gray-400 text-xs mt-2">
-            Système de gestion des demandes de chiffrage
+            Système de gestion des demandes de chiffrage - 3 usines: Bois, Métal, Semi-Métallique
           </div>
         </div>
       </footer>
