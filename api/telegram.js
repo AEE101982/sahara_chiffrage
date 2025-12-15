@@ -1,7 +1,7 @@
 // api/telegram.js - Vercel Serverless Function pour Telegram
 
 const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
-const CHEF_TELEGRAM_ID = '7903997817';
+const CHEF_TELEGRAM_IDS = ['8054238662', '7903997817'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
