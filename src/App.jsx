@@ -271,7 +271,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
 
   // Profil Commercial
   const CommercialDashboard = () => {
-    const [lines, setLines] = useState([{ id: 1, text: '' }]);
+    const [lines, setLines] = useState([{ id: 1, text: '', images: []}]);
     const [images, setImages] = useState([]);
     const [sentQuotes, setSentQuotes] = useState([]);
 
@@ -819,7 +819,7 @@ ${quote.lines.map((line, idx) => `${idx + 1}. ${line.text}`).join('\n')}`;
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-indigo-600">Gestion des Chiffrages</h1>
             <p className="text-sm text-gray-600">{currentUser.name}</p>
