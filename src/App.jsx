@@ -2,26 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Plus, Trash2, Send, CheckCircle, XCircle, Eye, LogOut, Users, ImagePlus, X } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration Supabase - REMPLACER PAR VOS CLÉS
+// Configuration Supabase
 const supabaseUrl = 'https://kvvcuainxntgtaykehyq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2dmN1YWlueG50Z3RheWtlaHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MjkwMDcsImV4cCI6MjA4MTMwNTAwN30.ZuZFl0on9s5Sa8hLwevUq6ksIJuO7hKIzH1Pft20oC8';
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
-const CHEF_TELEGRAM_ID = '8054238662';
-
-// Import du logo - Assurez-vous que le fichier logosahara2.png est dans le même dossier
-const logo = './logosahara2.png';
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [quotes, setQuotes] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
+    // Vérifier si l'utilisateur est déjà connecté au chargement
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Erreur de parsing de l\'utilisateur:', error);
+      }
+    }
+    
     loadData();
   }, []);
+
+  // Sauvegarder l'utilisateur quand il change
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
 
   const loadData = async () => {
     setLoading(true);
@@ -58,19 +72,21 @@ ${quote.lines.map((line, idx) => {
   return `${lineText} ${imagesCount > 0 ? `(${imagesCount} image${imagesCount > 1 ? 's' : ''})` : ''}`;
 }).join('\n')}`;
 
-      // Appeler notre API Vercel serverless function
       await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          lines: quote.lines // Envoyer toutes les lignes avec leurs images
+          lines: quote.lines
         })
       });
     } catch (error) {
       console.error('Erreur notification Telegram:', error);
     }
   };
+
+  // Logo en base64 pour éviter les problèmes de chemin
+  const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAA1BMVEX///+nxBvIAAAASElEQVR4nO3BgQAAAADDoPlTX+AIVQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwDcaiAAFXD1ujAAAAAElFTkSuQmCC';
 
   // Composant de connexion
   const LoginScreen = () => {
@@ -96,20 +112,29 @@ ${quote.lines.map((line, idx) => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-          {/* Logo ajouté */}
-          <div className="flex justify-center mb-6">
-            <img 
-              src={logo} 
-              alt="Sahara Mobilier" 
-              className="h-16 object-contain"
-              style={{ filter: 'brightness(0) saturate(100%)' }}
-            />
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+          {/* Logo avec meilleur centrage */}
+          <div className="flex flex-col items-center justify-center mb-8">
+            <div className="mb-4 flex justify-center">
+              <div className="relative">
+                {logoError ? (
+                  <div className="w-32 h-32 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-600 rounded-full">
+                    <span className="text-white font-bold text-2xl">SM</span>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-gray-800">SAHARA MOBILIER</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-center text-gray-800">
+              Gestion des Chiffrages
+            </h1>
+            <p className="text-gray-600 mt-2 text-center">Connectez-vous à votre compte</p>
           </div>
-          <h1 className="text-3xl font-bold text-center text-indigo-600 mb-8">
-            Gestion des Chiffrages
-          </h1>
-          <div className="space-y-4">
+          
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Nom d'utilisateur
@@ -118,7 +143,7 @@ ${quote.lines.map((line, idx) => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full p-4 border border-gray-300 rounded-xl focus:ring-3 focus:ring-indigo-500 focus:border-transparent transition-all"
                 placeholder="Entrez votre nom d'utilisateur"
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
@@ -131,23 +156,29 @@ ${quote.lines.map((line, idx) => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full p-4 border border-gray-300 rounded-xl focus:ring-3 focus:ring-indigo-500 focus:border-transparent transition-all"
                 placeholder="Entrez votre mot de passe"
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
             </div>
             {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
-                {error}
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <XCircle className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
               </div>
             )}
             <button
               onClick={handleLogin}
-              className="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
             >
               Se Connecter
             </button>
-            
           </div>
         </div>
       </div>
@@ -194,7 +225,7 @@ ${quote.lines.map((line, idx) => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
             <h2 className="text-2xl font-bold text-gray-800">Gestion des Utilisateurs</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -203,9 +234,9 @@ ${quote.lines.map((line, idx) => {
           </div>
           
           <div className="p-6">
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-lg mb-4">Créer un nouvel utilisateur</h3>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200">
+              <h3 className="font-bold text-xl mb-6 text-gray-800">Créer un nouvel utilisateur</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Nom complet</label>
                   <input
@@ -225,6 +256,7 @@ ${quote.lines.map((line, idx) => {
                   >
                     <option value="commercial">Commercial</option>
                     <option value="chef">Chef de Méthodes</option>
+                    <option value="directeur">Directeur</option>
                   </select>
                 </div>
                 <div>
@@ -250,27 +282,32 @@ ${quote.lines.map((line, idx) => {
               </div>
               <button
                 onClick={addUser}
-                className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                className="mt-6 bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md hover:shadow-lg"
               >
                 Créer l'utilisateur
               </button>
             </div>
 
             <div>
-              <h3 className="font-semibold text-lg mb-4">Utilisateurs existants</h3>
-              <div className="space-y-2">
+              <h3 className="font-bold text-xl mb-6 text-gray-800">Utilisateurs existants</h3>
+              <div className="space-y-4">
                 {users.map(user => (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={user.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <div>
-                      <div className="font-semibold">{user.name}</div>
-                      <div className="text-sm text-gray-600">
-                        @{user.username} • {user.role === 'commercial' ? 'Commercial' : user.role === 'chef' ? 'Chef de Méthodes' : 'Directeur'}
+                      <div className="font-bold text-gray-800">{user.name}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                          @{user.username}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          {user.role === 'commercial' ? 'Commercial' : user.role === 'chef' ? 'Chef de Méthodes' : 'Directeur'}
+                        </span>
                       </div>
                     </div>
                     {user.username !== 'admin' && (
                       <button
                         onClick={() => deleteUser(user.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 size={20} />
                       </button>
@@ -290,7 +327,7 @@ ${quote.lines.map((line, idx) => {
     const [lines, setLines] = useState([{ 
       id: 1, 
       text: '', 
-      images: [] // Chaque ligne a son propre tableau d'images
+      images: []
     }]);
     const [sentQuotes, setSentQuotes] = useState([]);
 
@@ -345,7 +382,8 @@ ${quote.lines.map((line, idx) => {
       const newQuote = {
         commercial_name: currentUser.name,
         lines: validLines,
-        status: 'en_attente'
+        status: 'en_attente',
+        date: new Date().toISOString()
       };
 
       const { data, error } = await supabase
@@ -365,38 +403,54 @@ ${quote.lines.map((line, idx) => {
     };
 
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Nouvelle Demande de Chiffrage</h2>
-          <div className="space-y-6">
+      <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-800">Nouvelle Demande de Chiffrage</h2>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full">
+              <Bell size={20} />
+              <span className="font-semibold">Commercial</span>
+            </div>
+          </div>
+          
+          <div className="space-y-8">
             {lines.map((line, index) => (
-              <div key={line.id} className="space-y-3 p-4 border border-gray-200 rounded-lg">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={line.text}
-                    onChange={(e) => updateLine(line.id, e.target.value)}
-                    placeholder={`Ligne ${index + 1}`}
-                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={() => removeLine(line.id)}
-                    disabled={lines.length === 1}
-                    className="p-3 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+              <div key={line.id} className="space-y-4 p-6 border-2 border-gray-200 rounded-xl hover:border-indigo-300 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <span className="text-indigo-600 font-bold">{index + 1}</span>
+                  </div>
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={line.text}
+                      onChange={(e) => updateLine(line.id, e.target.value)}
+                      placeholder={`Décrivez la ligne ${index + 1}`}
+                      className="flex-1 p-4 border border-gray-300 rounded-xl focus:ring-3 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                    <button
+                      onClick={() => removeLine(line.id)}
+                      disabled={lines.length === 1}
+                      className="p-4 text-red-600 hover:bg-red-50 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Trash2 size={24} />
+                    </button>
+                  </div>
                 </div>
                 
-                {/* Section images pour cette ligne spécifique */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Images pour cette ligne (optionnel)
-                  </label>
-                  <div className="flex gap-2 items-center">
-                    <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
-                      <ImagePlus size={20} />
-                      Ajouter des images
+                <div className="ml-11">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Images pour cette ligne (optionnel)
+                    </label>
+                    <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      {line.images.length} image(s)
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 rounded-xl hover:from-gray-100 hover:to-gray-200 transition-all cursor-pointer border-2 border-dashed border-gray-300">
+                      <ImagePlus size={24} />
+                      <span className="font-medium">Cliquer pour ajouter des images</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -405,94 +459,154 @@ ${quote.lines.map((line, idx) => {
                         className="hidden" 
                       />
                     </label>
-                    <span className="text-sm text-gray-600">
-                      {line.images.length} image(s)
-                    </span>
+                    
+                    {line.images.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {line.images.map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200">
+                              <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                            <button
+                              onClick={() => removeImage(line.id, idx)}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            >
+                              <X size={18} />
+                            </button>
+                            <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                              Image {idx + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {line.images.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2 mt-3">
-                      {line.images.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded-lg" />
-                          <button
-                            onClick={() => removeImage(line.id, idx)}
-                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <button
               onClick={addLine}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all font-semibold shadow-md hover:shadow-lg"
             >
-              <Plus size={20} />
+              <Plus size={24} />
               Ajouter une ligne
             </button>
             <button
               onClick={sendQuote}
-              className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ml-auto"
+              className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              <Send size={20} />
+              <Send size={24} />
               Envoyer pour Chiffrage
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Mes Demandes</h2>
-          <div className="space-y-3">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h2 className="text-3xl font-bold text-gray-800 mb-8">Mes Demandes</h2>
+          <div className="space-y-6">
             {sentQuotes.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Aucune demande envoyée</p>
+              <div className="text-center py-12">
+                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <Bell size={48} className="text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-lg">Aucune demande envoyée</p>
+                <p className="text-gray-400 mt-2">Vos demandes de chiffrage apparaîtront ici</p>
+              </div>
             ) : (
               sentQuotes.map(quote => (
-                <div key={quote.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="text-sm text-gray-600">
-                      {new Date(quote.date).toLocaleString('fr-FR')}
+                <div key={quote.id} className="border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-300 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-gray-600">
+                        {new Date(quote.date).toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Référence: #{quote.id.slice(0, 8)}
+                      </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      quote.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                    <span className={`px-6 py-2 rounded-full text-sm font-bold ${
+                      quote.status === 'en_attente' 
+                        ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200' 
+                        : 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
                     }`}>
-                      {quote.status === 'en_attente' ? 'En Attente' : 'Traitée'}
+                      {quote.status === 'en_attente' ? '⏳ En Attente' : '✅ Traitée'}
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  
+                  <div className="space-y-4">
                     {quote.lines.map((line, idx) => (
-                      <div key={idx} className="text-gray-700 p-3 bg-gray-50 rounded-lg">
-                        <div className="font-medium">• {line.text}</div>
-                        {line.images && line.images.length > 0 && (
-                          <div className="mt-2 flex gap-2">
-                            {line.images.map((img, imgIdx) => (
-                              <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-16 h-16 object-cover rounded" />
-                            ))}
+                      <div key={idx} className="p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center mt-1">
+                            <span className="text-indigo-600 text-xs font-bold">{idx + 1}</span>
                           </div>
-                        )}
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-800">{line.text}</div>
+                            {line.images && line.images.length > 0 && (
+                              <div className="mt-3">
+                                <div className="flex gap-2 flex-wrap">
+                                  {line.images.map((img, imgIdx) => (
+                                    <div key={imgIdx} className="relative group">
+                                      <img 
+                                        src={img} 
+                                        alt={`Image ${imgIdx + 1}`} 
+                                        className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-indigo-400 transition-colors"
+                                        onClick={() => window.open(img)}
+                                      />
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                        <Eye size={16} className="text-white" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  
                   {quote.status === 'traite' && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="flex items-center gap-2 text-sm">
-                        {quote.realisable ? (
-                          <>
-                            <CheckCircle size={16} className="text-green-600" />
-                            <span className="text-green-700 font-semibold">Réalisable</span>
-                            <span className="ml-auto text-indigo-600 font-bold">{quote.prix_ttc} DH TTC</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={16} className="text-red-600" />
-                            <span className="text-red-700 font-semibold">Non Réalisable</span>
-                          </>
+                    <div className="mt-6 pt-6 border-t-2 border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {quote.realisable ? (
+                            <>
+                              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                                <CheckCircle size={24} className="text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-emerald-700">Réalisable</div>
+                                <div className="text-sm text-gray-600">Demande validée par le chef de méthodes</div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                <XCircle size={24} className="text-red-600" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-red-700">Non Réalisable</div>
+                                <div className="text-sm text-gray-600">Demande rejetée par le chef de méthodes</div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        {quote.realisable && (
+                          <div className="text-right">
+                            <div className="text-sm text-gray-600">Prix TTC</div>
+                            <div className="text-3xl font-bold text-indigo-600">{quote.prix_ttc} DH</div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -531,7 +645,8 @@ ${quote.lines.map((line, idx) => {
         .update({
           status: 'traite',
           realisable,
-          prix_ttc: realisable ? parseFloat(prixTTC) : null
+          prix_ttc: realisable ? parseFloat(prixTTC) : null,
+          date_traite: new Date().toISOString()
         })
         .eq('id', selectedQuote.id);
 
@@ -548,85 +663,184 @@ ${quote.lines.map((line, idx) => {
 
     if (selectedQuote) {
       return (
-        <div className="bg-white rounded-lg shadow p-6">
-          <button onClick={() => setSelectedQuote(null)} className="mb-4 text-indigo-600 hover:text-indigo-800">
-            ← Retour à la liste
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+          <button 
+            onClick={() => setSelectedQuote(null)} 
+            className="flex items-center gap-2 mb-8 text-indigo-600 hover:text-indigo-800 font-semibold group"
+          >
+            <div className="transform group-hover:-translate-x-1 transition-transform">←</div>
+            Retour à la liste
           </button>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Détails de la Demande</h2>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 mb-2">
-                Commercial: <span className="font-semibold">{selectedQuote.commercial_name}</span>
+          
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-800">Détails de la Demande</h2>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full">
+              <Bell size={20} />
+              <span className="font-semibold">Chef de Méthodes</span>
+            </div>
+          </div>
+          
+          <div className="space-y-8">
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Commercial</div>
+                  <div className="text-xl font-bold text-gray-800">{selectedQuote.commercial_name}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Date de demande</div>
+                  <div className="text-xl font-bold text-gray-800">
+                    {new Date(selectedQuote.date).toLocaleString('fr-FR', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Statut</div>
+                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200">
+                    ⏳ En Attente de traitement
+                  </span>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 mb-3">
-                Date: {new Date(selectedQuote.date).toLocaleString('fr-FR')}
-              </div>
-              <div className="space-y-3">
-                <div className="font-semibold text-gray-700">Lignes de la demande:</div>
+              
+              <div className="space-y-6">
+                <div className="font-bold text-xl text-gray-800 mb-4">Lignes de la demande:</div>
                 {selectedQuote.lines.map((line, idx) => (
-                  <div key={idx} className="text-gray-700 p-3 bg-white rounded-lg border border-gray-200">
-                    <div className="font-medium">• {line.text}</div>
-                    {line.images && line.images.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-sm text-gray-600 mb-1">Images associées:</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {line.images.map((img, imgIdx) => (
-                            <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-24 object-cover rounded-lg" />
-                          ))}
-                        </div>
+                  <div key={idx} className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-indigo-300 transition-colors">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <span className="text-indigo-600 font-bold">{idx + 1}</span>
                       </div>
-                    )}
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-800 mb-2">{line.text}</div>
+                        {line.images && line.images.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-sm font-medium text-gray-600 mb-3">Images associées ({line.images.length})</div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {line.images.map((img, imgIdx) => (
+                                <div key={imgIdx} className="relative group">
+                                  <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-300">
+                                    <img src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                    <button
+                                      onClick={() => window.open(img)}
+                                      className="bg-white text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                                    >
+                                      Agrandir
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-4 pt-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Statut de Réalisation</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={realisable === true}
-                      onChange={() => setRealisable(true)}
-                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <span className="text-gray-700">Réalisable</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={realisable === false}
-                      onChange={() => setRealisable(false)}
-                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <span className="text-gray-700">Non Réalisable</span>
-                  </label>
-                </div>
-              </div>
-
-              {realisable && (
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-8 border-2 border-indigo-200">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">Traitement de la demande</h3>
+              
+              <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Prix de vente à Sahara Mobilier (TTC)
-                  </label>
-                  <input
-                    type="number"
-                    value={prixTTC}
-                    onChange={(e) => setPrixTTC(e.target.value)}
-                    placeholder="Entrez le prix TTC"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
+                  <label className="block text-lg font-bold text-gray-800 mb-4">Statut de Réalisation</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className={`flex items-center justify-between p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                      realisable === true 
+                        ? 'border-emerald-500 bg-gradient-to-r from-emerald-50 to-green-50' 
+                        : 'border-gray-300 hover:border-emerald-300 hover:bg-gray-50'
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          realisable === true ? 'border-emerald-500 bg-emerald-500' : 'border-gray-400'
+                        }`}>
+                          {realisable === true && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-800">Réalisable</div>
+                          <div className="text-sm text-gray-600 mt-1">La demande peut être réalisée</div>
+                        </div>
+                      </div>
+                      <CheckCircle size={24} className={`${realisable === true ? 'text-emerald-500' : 'text-gray-300'}`} />
+                      <input
+                        type="radio"
+                        name="realisable"
+                        checked={realisable === true}
+                        onChange={() => setRealisable(true)}
+                        className="hidden"
+                      />
+                    </label>
+                    
+                    <label className={`flex items-center justify-between p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                      realisable === false 
+                        ? 'border-red-500 bg-gradient-to-r from-red-50 to-pink-50' 
+                        : 'border-gray-300 hover:border-red-300 hover:bg-gray-50'
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          realisable === false ? 'border-red-500 bg-red-500' : 'border-gray-400'
+                        }`}>
+                          {realisable === false && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-800">Non Réalisable</div>
+                          <div className="text-sm text-gray-600 mt-1">La demande ne peut être réalisée</div>
+                        </div>
+                      </div>
+                      <XCircle size={24} className={`${realisable === false ? 'text-red-500' : 'text-gray-300'}`} />
+                      <input
+                        type="radio"
+                        name="realisable"
+                        checked={realisable === false}
+                        onChange={() => setRealisable(false)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
-              )}
 
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              >
-                Valider le Traitement
-              </button>
+                {realisable && (
+                  <div>
+                    <label className="block text-lg font-bold text-gray-800 mb-4">
+                      Prix de vente à Sahara Mobilier (TTC)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={prixTTC}
+                        onChange={(e) => setPrixTTC(e.target.value)}
+                        placeholder="Entrez le prix TTC en DH"
+                        className="w-full p-6 text-xl border-2 border-gray-300 rounded-xl focus:ring-3 focus:ring-indigo-500 focus:border-transparent transition-all pl-20"
+                      />
+                      <div className="absolute left-6 top-1/2 transform -translate-y-1/2 text-xl font-bold text-gray-600">
+                        DH
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-3">
+                      Prix TTC incluant toutes les taxes et frais
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={realisable === null || (realisable && !prixTTC)}
+                  className="w-full p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  Valider le Traitement
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -634,36 +848,103 @@ ${quote.lines.map((line, idx) => {
     }
 
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">Demandes en Attente</h2>
-          <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
-            <Bell size={16} />
-            <span className="font-semibold">{pendingQuotes.length}</span>
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800">Demandes en Attente</h2>
+            <p className="text-gray-600 mt-2">Traitez les demandes de chiffrage des commerciaux</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-full">
+              <Bell size={24} />
+              <span className="font-bold">{pendingQuotes.length}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full">
+              <span className="font-semibold">Chef de Méthodes</span>
+            </div>
           </div>
         </div>
-        <div className="space-y-3">
+        
+        <div className="space-y-6">
           {pendingQuotes.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Aucune demande en attente</p>
+            <div className="text-center py-16">
+              <div className="mx-auto w-32 h-32 bg-gradient-to-r from-emerald-100 to-green-100 rounded-full flex items-center justify-center mb-8">
+                <CheckCircle size={64} className="text-emerald-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Toutes les demandes sont traitées !</h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Aucune demande en attente. Vous serez notifié lorsque de nouvelles demandes arriveront.
+              </p>
+            </div>
           ) : (
             pendingQuotes.map(quote => (
               <div
                 key={quote.id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors cursor-pointer"
+                className="group border-2 border-gray-200 rounded-2xl p-6 hover:border-indigo-400 transition-all cursor-pointer hover:shadow-lg"
                 onClick={() => setSelectedQuote(quote)}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <div className="font-semibold text-gray-800">{quote.commercial_name}</div>
-                    <div className="text-sm text-gray-600">
-                      {new Date(quote.date).toLocaleString('fr-FR')}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl font-bold text-indigo-600">
+                          {quote.commercial_name.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold text-gray-800">{quote.commercial_name}</div>
+                        <div className="text-sm text-gray-600">
+                          {new Date(quote.date).toLocaleString('fr-FR', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {quote.lines.length} ligne{quote.lines.length > 1 ? 's' : ''}
+                      </span>
+                      {quote.lines.some(line => line.images && line.images.length > 0) && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          Avec images
+                        </span>
+                      )}
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                        En attente depuis {Math.floor((new Date() - new Date(quote.date)) / (1000 * 60 * 60))}h
+                      </span>
                     </div>
                   </div>
-                  <Eye size={20} className="text-indigo-600" />
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">Référence</div>
+                      <div className="font-mono font-bold text-gray-800">#{quote.id.slice(0, 8)}</div>
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Eye size={24} className="text-white" />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  {quote.lines.length} ligne(s)
-                  {quote.lines.some(line => line.images && line.images.length > 0) && ' • Avec images'}
+                
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="text-sm font-medium text-gray-800 mb-3">Lignes:</div>
+                  <div className="space-y-2">
+                    {quote.lines.slice(0, 2).map((line, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                        <div className="text-sm text-gray-700 truncate">{line.text}</div>
+                      </div>
+                    ))}
+                    {quote.lines.length > 2 && (
+                      <div className="text-sm text-gray-500">
+                        + {quote.lines.length - 2} autres ligne{quote.lines.length - 2 > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -690,66 +971,123 @@ ${quote.lines.map((line, idx) => {
 
     if (selectedQuote) {
       return (
-        <div className="bg-white rounded-lg shadow p-6">
-          <button onClick={() => setSelectedQuote(null)} className="mb-4 text-indigo-600 hover:text-indigo-800">
-            ← Retour à la liste
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+          <button 
+            onClick={() => setSelectedQuote(null)} 
+            className="flex items-center gap-2 mb-8 text-indigo-600 hover:text-indigo-800 font-semibold group"
+          >
+            <div className="transform group-hover:-translate-x-1 transition-transform">←</div>
+            Retour à la liste
           </button>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Détails de la Demande</h2>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <div className="text-sm text-gray-600">Commercial</div>
-                  <div className="font-semibold">{selectedQuote.commercial_name}</div>
+          
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-800">Détails de la Demande</h2>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full">
+              <span className="font-semibold">Directeur</span>
+            </div>
+          </div>
+          
+          <div className="space-y-8">
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Commercial</div>
+                  <div className="text-xl font-bold text-gray-800">{selectedQuote.commercial_name}</div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-600">Date</div>
-                  <div className="font-semibold">{new Date(selectedQuote.date).toLocaleString('fr-FR')}</div>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Date</div>
+                  <div className="text-xl font-bold text-gray-800">
+                    {new Date(selectedQuote.date).toLocaleString('fr-FR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-600">Statut</div>
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                    selectedQuote.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Statut</div>
+                  <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
+                    selectedQuote.status === 'en_attente' 
+                      ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200'
+                      : 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
                   }`}>
-                    {selectedQuote.status === 'en_attente' ? 'En Attente' : 'Traitée'}
+                    {selectedQuote.status === 'en_attente' ? '⏳ En Attente' : '✅ Traitée'}
                   </span>
                 </div>
               </div>
-              <div className="space-y-3">
-                <div className="font-semibold text-gray-700">Lignes de la demande:</div>
+              
+              <div className="space-y-6">
+                <div className="font-bold text-xl text-gray-800 mb-4">Lignes de la demande:</div>
                 {selectedQuote.lines.map((line, idx) => (
-                  <div key={idx} className="text-gray-700 p-3 bg-white rounded-lg border border-gray-200">
-                    <div className="font-medium">• {line.text}</div>
-                    {line.images && line.images.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-sm text-gray-600 mb-1">Images associées:</div>
-                        <div className="grid grid-cols-4 gap-2">
-                          {line.images.map((img, imgIdx) => (
-                            <img key={imgIdx} src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-24 object-cover rounded-lg cursor-pointer" onClick={() => window.open(img)} />
-                          ))}
-                        </div>
+                  <div key={idx} className="p-6 bg-white rounded-xl border-2 border-gray-200">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <span className="text-indigo-600 font-bold">{idx + 1}</span>
                       </div>
-                    )}
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-800 mb-2">{line.text}</div>
+                        {line.images && line.images.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-sm font-medium text-gray-600 mb-3">Images associées ({line.images.length})</div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {line.images.map((img, imgIdx) => (
+                                <div key={imgIdx} className="relative group">
+                                  <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-300">
+                                    <img src={img} alt={`Image ${imgIdx + 1}`} className="w-full h-full object-cover cursor-pointer" onClick={() => window.open(img)} />
+                                  </div>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                    <div className="text-white text-sm font-medium">Cliquer pour agrandir</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             {selectedQuote.status === 'traite' && (
-              <div className="bg-indigo-50 p-4 rounded-lg">
-                <div className="font-semibold text-gray-800 mb-2">Résultat du Chiffrage</div>
-                <div className="flex items-center gap-2">
-                  {selectedQuote.realisable ? (
-                    <>
-                      <CheckCircle size={20} className="text-green-600" />
-                      <span className="text-green-700 font-semibold">Réalisable</span>
-                      <span className="ml-auto text-indigo-600 font-bold text-xl">{selectedQuote.prix_ttc} DH TTC</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={20} className="text-red-600" />
-                      <span className="text-red-700 font-semibold">Non Réalisable</span>
-                    </>
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-8 border-2 border-emerald-200">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Résultat du Chiffrage</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      {selectedQuote.realisable ? (
+                        <>
+                          <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                            <CheckCircle size={32} className="text-emerald-600" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-emerald-700">Réalisable</div>
+                            <div className="text-gray-600">Validé par le chef de méthodes</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
+                            <XCircle size={32} className="text-red-600" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-red-700">Non Réalisable</div>
+                            <div className="text-gray-600">Rejeté par le chef de méthodes</div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {selectedQuote.realisable && (
+                    <div className="space-y-4">
+                      <div className="text-sm font-medium text-gray-600">Prix de vente TTC</div>
+                      <div className="text-5xl font-bold text-indigo-600">{selectedQuote.prix_ttc} DH</div>
+                      <div className="text-sm text-gray-500">Prix toutes taxes comprises</div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -762,86 +1100,169 @@ ${quote.lines.map((line, idx) => {
     return (
       <>
         {showUserManagement && <UserManagement onClose={() => setShowUserManagement(false)} />}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Toutes les Demandes</h2>
-              <button
-                onClick={() => setShowUserManagement(true)}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <Users size={20} />
-                Gérer les Utilisateurs
-              </button>
+        
+        <div className="space-y-8 max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800">Tableau de Bord - Directeur</h2>
+                <p className="text-gray-600 mt-2">Vue d'ensemble de toutes les demandes de chiffrage</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => setShowUserManagement(true)}
+                  className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl"
+                >
+                  <Users size={24} />
+                  Gérer les Utilisateurs
+                </button>
+                <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full">
+                  <span className="font-semibold">Directeur</span>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2 mb-4">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-2xl border-2 border-blue-200">
+                <div className="text-4xl font-bold text-blue-600 mb-2">{quotes.length}</div>
+                <div className="text-lg font-semibold text-gray-800">Total des demandes</div>
+                <div className="text-sm text-gray-600 mt-1">Toutes demandes confondues</div>
+              </div>
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 rounded-2xl border-2 border-amber-200">
+                <div className="text-4xl font-bold text-amber-600 mb-2">{quotes.filter(q => q.status === 'en_attente').length}</div>
+                <div className="text-lg font-semibold text-gray-800">En attente</div>
+                <div className="text-sm text-gray-600 mt-1">Demandes non traitées</div>
+              </div>
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-6 rounded-2xl border-2 border-emerald-200">
+                <div className="text-4xl font-bold text-emerald-600 mb-2">{quotes.filter(q => q.status === 'traite').length}</div>
+                <div className="text-lg font-semibold text-gray-800">Traitée</div>
+                <div className="text-sm text-gray-600 mt-1">Demandes finalisées</div>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-3 mb-8">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filter === 'all' 
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 Toutes ({quotes.length})
               </button>
               <button
                 onClick={() => setFilter('en_attente')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === 'en_attente' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filter === 'en_attente' 
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 En Attente ({quotes.filter(q => q.status === 'en_attente').length})
               </button>
               <button
                 onClick={() => setFilter('traite')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === 'traite' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  filter === 'traite' 
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 Traitées ({quotes.filter(q => q.status === 'traite').length})
               </button>
             </div>
-            <div className="space-y-3">
+            
+            <div className="space-y-6">
               {filteredQuotes.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Aucune demande</p>
+                <div className="text-center py-16">
+                  <div className="mx-auto w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mb-8">
+                    <Bell size={64} className="text-gray-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune demande trouvée</h3>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    Aucune demande ne correspond au filtre sélectionné.
+                  </p>
+                </div>
               ) : (
                 filteredQuotes.map(quote => (
                   <div
                     key={quote.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors cursor-pointer"
+                    className="group border-2 border-gray-200 rounded-2xl p-6 hover:border-indigo-400 transition-all cursor-pointer hover:shadow-lg"
                     onClick={() => setSelectedQuote(quote)}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-semibold text-gray-800">{quote.commercial_name}</div>
-                        <div className="text-sm text-gray-600">{new Date(quote.date).toLocaleString('fr-FR')}</div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl flex items-center justify-center">
+                            <span className="text-2xl font-bold text-indigo-600">
+                              {quote.commercial_name.charAt(0)}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-gray-800">{quote.commercial_name}</div>
+                            <div className="text-sm text-gray-600">
+                              {new Date(quote.date).toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            quote.status === 'en_attente' 
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {quote.status === 'en_attente' ? '⏳ En Attente' : '✅ Traitée'}
+                          </span>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {quote.lines.length} ligne{quote.lines.length > 1 ? 's' : ''}
+                          </span>
+                          {quote.lines.some(line => line.images && line.images.length > 0) && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              Avec images
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          quote.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                        }`}>
-                          {quote.status === 'en_attente' ? 'En Attente' : 'Traitée'}
-                        </span>
-                        <Eye size={20} className="text-indigo-600" />
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="text-right hidden md:block">
+                          <div className="text-sm text-gray-600">Référence</div>
+                          <div className="font-mono font-bold text-gray-800">#{quote.id.slice(0, 8)}</div>
+                        </div>
+                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Eye size={24} className="text-white" />
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {quote.lines.length} ligne(s)
-                      {quote.lines.some(line => line.images && line.images.length > 0) && ' • Avec images'}
-                    </div>
+                    
                     {quote.status === 'traite' && (
-                      <div className="mt-2 pt-2 border-t border-gray-200">
-                        <div className="flex items-center gap-2 text-sm">
-                          {quote.realisable ? (
-                            <>
-                              <CheckCircle size={14} className="text-green-600" />
-                              <span className="text-green-700">Réalisable</span>
-                              <span className="ml-auto text-indigo-600 font-bold">{quote.prix_ttc} DH TTC</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle size={14} className="text-red-600" />
-                              <span className="text-red-700">Non Réalisable</span>
-                            </>
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {quote.realisable ? (
+                              <>
+                                <CheckCircle size={20} className="text-emerald-600" />
+                                <span className="font-bold text-emerald-700">Réalisable</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle size={20} className="text-red-600" />
+                                <span className="font-bold text-red-700">Non Réalisable</span>
+                              </>
+                            )}
+                          </div>
+                          {quote.realisable && (
+                            <div className="text-right">
+                              <div className="text-sm text-gray-600">Prix TTC</div>
+                              <div className="text-2xl font-bold text-indigo-600">{quote.prix_ttc} DH</div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -861,46 +1282,64 @@ ${quote.lines.map((line, idx) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            {/* Logo ajouté dans le header */}
-            <img 
-              src={logo} 
-              alt="Sahara Mobilier" 
-              className="h-10 object-contain"
-              style={{ filter: 'brightness(0) saturate(100%)' }}
-            />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <header className="bg-white shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold text-xl">SM</span>
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-indigo-600">Gestion des Chiffrages</h1>
-              <p className="text-sm text-gray-600">{currentUser.name}</p>
+              <h1 className="text-2xl font-bold text-gray-800">SAHARA MOBILIER</h1>
+              <p className="text-gray-600">Gestion des Chiffrages</p>
             </div>
           </div>
-          <button
-            onClick={() => setCurrentUser(null)}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <LogOut size={20} />
-            Déconnexion
-          </button>
+          
+          <div className="flex items-center gap-6">
+            <div className="text-right hidden sm:block">
+              <div className="font-semibold text-gray-800">{currentUser.name}</div>
+              <div className="text-sm text-gray-600">
+                {currentUser.role === 'commercial' ? 'Commercial' : 
+                 currentUser.role === 'chef' ? 'Chef de Méthodes' : 'Directeur'}
+              </div>
+            </div>
+            <button
+              onClick={() => setCurrentUser(null)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all font-semibold shadow-md hover:shadow-lg"
+            >
+              <LogOut size={20} />
+              Déconnexion
+            </button>
+          </div>
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      
+      <main className="max-w-7xl mx-auto px-4 py-8">
         {loading ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center py-8">Chargement...</div>
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+            <div className="text-2xl font-semibold text-gray-800">Chargement...</div>
+            <p className="text-gray-600 mt-2">Veuillez patienter</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
-            <div className="w-full">
-              {currentUser.role === 'commercial' && <CommercialDashboard />}
-              {currentUser.role === 'chef' && <ChefDashboard />}
-              {currentUser.role === 'directeur' && <DirecteurDashboard />}
-            </div>
+          <div className="w-full">
+            {currentUser.role === 'commercial' && <CommercialDashboard />}
+            {currentUser.role === 'chef' && <ChefDashboard />}
+            {currentUser.role === 'directeur' && <DirecteurDashboard />}
           </div>
         )}
       </main>
+      
+      <footer className="mt-auto py-8 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} Sahara Mobilier - Gestion des Chiffrages
+          </div>
+          <div className="text-gray-400 text-xs mt-2">
+            Système de gestion des demandes de chiffrage
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
