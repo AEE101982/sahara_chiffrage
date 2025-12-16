@@ -98,7 +98,7 @@ ${quote.lines.map((line, idx) => {
     }
   };
 
-  // Composant de connexion
+  // Composant de connexion - CORRIGÉ POUR LE CENTRAGE
   const LoginScreen = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -122,7 +122,7 @@ ${quote.lines.map((line, idx) => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto"> {/* mx-auto ajouté */}
           <div className="flex flex-col items-center justify-center mb-8">
             <div className="mb-4 flex justify-center">
               <div className="relative">
@@ -229,7 +229,7 @@ ${quote.lines.map((line, idx) => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto mx-auto"> {/* mx-auto ajouté */}
           <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
             <h2 className="text-2xl font-bold text-gray-800">Gestion des Utilisateurs</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -437,7 +437,7 @@ ${quote.lines.map((line, idx) => {
     };
 
     return (
-      <div className="space-y-8 max-w-6xl mx-auto">
+      <div className="space-y-8 w-full"> {/* Modifié: retiré max-w-6xl */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-800">Nouvelle Demande de Chiffrage</h2>
@@ -512,7 +512,7 @@ ${quote.lines.map((line, idx) => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-700">
-                    Chef: <span className="font-semibold">M. Youness</span>
+                    Chef: <span className="font-semibold">M. Karim</span>
                   </div>
                 </div>
               </label>
@@ -544,7 +544,7 @@ ${quote.lines.map((line, idx) => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-700">
-                    Chef: <span className="font-semibold">M. Jaouad</span>
+                    Chef: <span className="font-semibold">M. Youssef</span>
                   </div>
                 </div>
               </label>
@@ -872,7 +872,7 @@ ${quote.lines.map((line, idx) => {
 
     if (selectedQuote) {
       return (
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full"> {/* Modifié: retiré max-w-6xl */}
           <button 
             onClick={() => setSelectedQuote(null)} 
             className="flex items-center gap-2 mb-8 text-indigo-600 hover:text-indigo-800 font-semibold group"
@@ -1062,7 +1062,7 @@ ${quote.lines.map((line, idx) => {
     }
 
     return (
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full"> {/* Modifié: retiré max-w-6xl */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-800">Demandes en Attente</h2>
@@ -1199,7 +1199,7 @@ ${quote.lines.map((line, idx) => {
 
     if (selectedQuote) {
       return (
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full"> {/* Modifié: retiré max-w-6xl */}
           <button 
             onClick={() => setSelectedQuote(null)} 
             className="flex items-center gap-2 mb-8 text-indigo-600 hover:text-indigo-800 font-semibold group"
@@ -1336,7 +1336,7 @@ ${quote.lines.map((line, idx) => {
       <>
         {showUserManagement && <UserManagement onClose={() => setShowUserManagement(false)} />}
         
-        <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="space-y-8 w-full"> {/* Modifié: retiré max-w-6xl */}
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
               <div>
@@ -1584,9 +1584,9 @@ ${quote.lines.map((line, idx) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <header className="bg-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+      <header className="bg-white shadow-xl w-full">
+        <div className="w-full px-4 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mx-auto"> {/* Modifié: w-full */}
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-xl">SM</span>
@@ -1617,7 +1617,7 @@ ${quote.lines.map((line, idx) => {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="flex-1 w-full px-4 py-8 mx-auto"> {/* Modifié: w-full et retiré max-w-7xl */}
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
@@ -1625,7 +1625,7 @@ ${quote.lines.map((line, idx) => {
             <p className="text-gray-600 mt-2">Veuillez patienter</p>
           </div>
         ) : (
-          <div className="w-full">
+          <div className="w-full mx-auto"> {/* Modifié: retiré max-w-6xl */}
             {currentUser.role === 'commercial' && <CommercialDashboard />}
             {currentUser.role === 'chef' && <ChefDashboard />}
             {currentUser.role === 'directeur' && <DirecteurDashboard />}
@@ -1633,8 +1633,8 @@ ${quote.lines.map((line, idx) => {
         )}
       </main>
       
-      <footer className="mt-auto py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center">
+      <footer className="mt-auto py-8 px-4 w-full"> {/* Modifié: w-full */}
+        <div className="w-full mx-auto text-center"> {/* Modifié: w-full */}
           <div className="text-gray-500 text-sm">
             © {new Date().getFullYear()} Sahara Mobilier - Gestion des Chiffrages
           </div>
