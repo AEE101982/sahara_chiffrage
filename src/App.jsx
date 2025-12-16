@@ -195,7 +195,7 @@ ${quote.lines.map((line, idx) => {
       password: '',
       role: 'commercial',
       name: '',
-      usine: 'bois' // Ajouter l'usine pour les chefs
+      usine: 'bois'
     });
 
     const addUser = async () => {
@@ -772,6 +772,11 @@ ${quote.lines.map((line, idx) => {
                           </div>
                         )}
                       </div>
+                      {quote.updated_at && (
+                        <div className="mt-3 text-sm text-gray-500">
+                          Traité le: {new Date(quote.updated_at).toLocaleString('fr-FR')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -789,16 +794,12 @@ ${quote.lines.map((line, idx) => {
     const [realisable, setRealisable] = useState(null);
     const [prixTTC, setPrixTTC] = useState('');
 
-    // Déterminer l'usine du chef connecté (basé sur le nom ou autre logique)
+    // Déterminer l'usine du chef connecté
     const getChefUsine = () => {
-      // Logique simple basée sur le nom du chef
-      const chefUsines = {
-        'Ahmed': 'bois',
-        'Karim': 'metal',
-        'Youssef': 'semi-metal'
-      };
+      // Priorité: usine dans le profil utilisateur
+      if (currentUser.usine) return currentUser.usine;
       
-      // Chercher par nom ou par initiales
+      // Fallback: basé sur le nom
       const userName = currentUser.name.toLowerCase();
       if (userName.includes('ahmed')) return 'bois';
       if (userName.includes('karim')) return 'metal';
@@ -826,24 +827,46 @@ ${quote.lines.map((line, idx) => {
         return;
       }
 
-      const { error } = await supabase
-        .from('quotes')
-        .update({
+      try {
+        // Préparer les données de mise à jour avec updated_at
+        const updateData = {
           status: 'traite',
           realisable,
           prix_ttc: realisable ? parseFloat(prixTTC) : null,
-          date_traite: new Date().toISOString()
-        })
-        .eq('id', selectedQuote.id);
+          updated_at: new Date().toISOString() // Option B: Utilisation de updated_at
+        };
 
-      if (error) {
-        alert('Erreur: ' + error.message);
-      } else {
+        const { error } = await supabase
+          .from('quotes')
+          .update(updateData)
+          .eq('id', selectedQuote.id);
+
+        if (error) {
+          // Si updated_at n'existe pas, réessayer sans
+          if (error.message.includes('updated_at')) {
+            delete updateData.updated_at;
+            const { error: retryError } = await supabase
+              .from('quotes')
+              .update(updateData)
+              .eq('id', selectedQuote.id);
+            
+            if (retryError) {
+              throw retryError;
+            }
+          } else {
+            throw error;
+          }
+        }
+
         alert('Demande traitée avec succès!');
         setSelectedQuote(null);
         setRealisable(null);
         setPrixTTC('');
         loadData();
+        
+      } catch (error) {
+        console.error('Erreur lors du traitement:', error);
+        alert(`Erreur: ${error.message}`);
       }
     };
 
@@ -1055,7 +1078,7 @@ ${quote.lines.map((line, idx) => {
               <span className="font-bold">{pendingQuotes.length}</span>
             </div>
             <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full">
-              <span className="font-semibold">Chef de Méthodes</span>
+              <span className="font-semibold">Chef de Méthodes {chefUsine !== 'all' ? `- ${getUsineLabel(chefUsine)}` : ''}</span>
             </div>
           </div>
         </div>
@@ -1287,6 +1310,11 @@ ${quote.lines.map((line, idx) => {
                         </>
                       )}
                     </div>
+                    {selectedQuote.updated_at && (
+                      <div className="text-sm text-gray-500">
+                        Traité le: {new Date(selectedQuote.updated_at).toLocaleString('fr-FR')}
+                      </div>
+                    )}
                   </div>
                   
                   {selectedQuote.realisable && (
@@ -1529,6 +1557,16 @@ ${quote.lines.map((line, idx) => {
                             </div>
                           )}
                         </div>
+                        {quote.updated_at && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Traité le: {new Date(quote.updated_at).toLocaleString('fr-FR', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
