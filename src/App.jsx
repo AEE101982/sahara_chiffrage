@@ -512,7 +512,7 @@ ${quote.lines.map((line, idx) => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-700">
-                    Chef: <span className="font-semibold">M. Karim</span>
+                    Chef: <span className="font-semibold">M. Youness</span>
                   </div>
                 </div>
               </label>
@@ -544,7 +544,7 @@ ${quote.lines.map((line, idx) => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-700">
-                    Chef: <span className="font-semibold">M. Youssef</span>
+                    Chef: <span className="font-semibold">M. Jaouad</span>
                   </div>
                 </div>
               </label>
