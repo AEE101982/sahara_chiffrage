@@ -5,8 +5,8 @@ const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
 // Mapping des chefs par usine
 const CHEFS_BY_USINE = {
   'bois': '8054238662',        // Chef usine Bois - Ahmed
-  'metal': '7903997817',       // Chef usine Metal - Karim
-  'semi-metal': '7392016731'   // Chef usine Semi-Métallique - Youssef
+  'metal': '7903997817',       // Chef usine Metal - Youness
+  'semi-metal': '7392016731'   // Chef usine Semi-Métallique - Jaouad
 };
 
 export default async function handler(req, res) {
