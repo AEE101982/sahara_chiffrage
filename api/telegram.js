@@ -1,56 +1,96 @@
-// Alternative dans App.jsx si l'API Vercel ne fonctionne pas
+// api/telegram.js - Vercel Serverless Function pour Telegram
 
-const sendTelegramNotification = async (quote, selectedUsine) => {
+const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
+
+// Mapping des chefs par usine
+const CHEFS_BY_USINE = {
+  'bois': '8054238662',        // Chef usine Bois - Ahmed
+  'metal': '7903997817',       // Chef usine Metal - Karim
+  'semi-metal': '7392016731'   // Chef usine Semi-Métallique - Youssef
+};
+
+export default async function handler(req, res) {
+  // Configurer les headers CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Gérer les requêtes OPTIONS pour CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    const TELEGRAM_BOT_TOKEN = '8583534519:AAF0bJg-Aniz0wDLjoDbeui6fOE7BmsA-sA';
-    const CHEFS_BY_USINE = {
-      'bois': '8054238662',
-      'metal': '7903997817',
-      'semi-metal': '7392016731'
-    };
-
-    const chefId = CHEFS_BY_USINE[selectedUsine];
-    if (!chefId) {
-      console.error('ID Telegram non trouvé pour l\'usine:', selectedUsine);
-      return;
-    }
-
-    const message = `🔔 *Nouvelle demande de chiffrage*
+    const { message, usine } = req.body;
     
-🏭 *Usine:* ${getUsineLabel(selectedUsine)}
-👤 *Commercial:* ${quote.commercial_name}
-📅 *Date:* ${new Date(quote.date).toLocaleString('fr-FR')}
-📋 *Nombre de lignes:* ${quote.lines.length}
-
-*Détails par ligne:*
-${quote.lines.map((line, idx) => {
-  const lineText = `${idx + 1}. ${line.text}`;
-  const imagesCount = line.images ? line.images.length : 0;
-  return `${lineText} ${imagesCount > 0 ? `(${imagesCount} image${imagesCount > 1 ? 's' : ''})` : ''}`;
-}).join('\n')}
-
-📱 _Connectez-vous à l'application pour voir les images détaillées._`;
-
-    // Envoi direct à l'API Telegram
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    console.log('📨 Requête Telegram reçue:', { usine, messageLength: message?.length });
+    
+    // Vérifier si l'usine est valide
+    const chefTelegramId = CHEFS_BY_USINE[usine];
+    
+    if (!chefTelegramId) {
+      console.error('❌ Usine non valide:', usine);
+      return res.status(400).json({ 
+        error: 'Usine non valide',
+        usinesDisponibles: Object.keys(CHEFS_BY_USINE)
+      });
+    }
+    
+    if (!message) {
+      console.error('❌ Message vide');
+      return res.status(400).json({ error: 'Message vide' });
+    }
+    
+    console.log(`📤 Envoi à l'usine ${usine}, chef ID: ${chefTelegramId}`);
+    
+    // Envoyer le message au chef de l'usine sélectionnée
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'User-Agent': 'Sahara-Chiffrage-App/1.0'
+      },
       body: JSON.stringify({
-        chat_id: chefId,
+        chat_id: chefTelegramId,
         text: message,
-        parse_mode: 'Markdown'
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true
       })
     });
 
-    const data = await response.json();
+    const telegramData = await telegramResponse.json();
     
-    if (!data.ok) {
-      console.error('Erreur Telegram:', data);
-    } else {
-      console.log('Notification Telegram envoyée avec succès');
+    console.log('📩 Réponse Telegram API:', telegramData);
+    
+    if (!telegramData.ok) {
+      console.error('❌ Erreur Telegram API:', telegramData);
+      return res.status(500).json({ 
+        error: 'Failed to send notification',
+        telegramError: telegramData.description,
+        details: telegramData
+      });
     }
+
+    console.log('✅ Notification envoyée avec succès');
+    
+    res.status(200).json({ 
+      success: true,
+      usine: usine,
+      chefId: chefTelegramId,
+      message: `Notification envoyée au chef de l'usine ${usine}`,
+      telegramResponse: telegramData
+    });
     
   } catch (error) {
-    console.error('Erreur envoi Telegram:', error);
+    console.error('🔥 Erreur Telegram:', error);
+    res.status(500).json({ 
+      error: 'Erreur lors de l\'envoi de la notification',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
-};
+}
