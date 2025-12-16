@@ -60,7 +60,7 @@ const App = () => {
 
   const getUsineLabel = (usineKey) => {
     const usines = {
-      'bois': 'Usine Bois',
+      'bois': 'Bois',
       'metal': 'Usine Metal',
       'semi-metal': 'Usine Semi-Métallique'
     };
